@@ -1,0 +1,15 @@
+{
+  "name": "btsms",
+  "version": "1.0.0",
+  "description": "Rand the bluetooth passkey daily.",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "TacticalTechJay",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "undici": "^5.6.0"
+  }
+}
