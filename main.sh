@@ -3,12 +3,15 @@
 main() {
     pin=$(randNumb)
 
-    curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json --data-urlencode "Body=Your new piberry speaker code: $pin" --data-urlencode "From=$TWILIO_FROM_PHONE" --data-urlencode "To=$TWILIO_TO_PHONE" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 1> /dev/null 2>&1 \
-    || {
-        echo $1
-        echo "Error sending SMS"
+    IS_ERROR=$(curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json --data-urlencode "Body=Your new piberry speaker code: $pin" --data-urlencode "From=$TWILIO_FROM_PHONE" --data-urlencode "To=$TWILIO_TO_PHONE" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 2>&1| jq .code)
+    if [ "$IS_ERROR" != "null" ]; then
+        if [ -z "$IS_ERROR" ]; then
+            echo "CRITICAL ERROR. Exiting."
+            exit 1
+        fi
+        echo "ERROR: $IS_ERROR"
         exit 1
-    }
+    fi
 
     mv $PIN_FILE $PIN_FILE.old
     sed -E "s/^\*\s{1,}[0-9]{4}/*   $pin/gm" $PIN_FILE.old > $PIN_FILE
@@ -26,6 +29,15 @@ main() {
 randNumb() {
     echo "$((1000 + RANDOM % 9000))"
 }
+
+if [ ! -e $PIN_FILE ]; then
+    echo "INFO: No pin file exists, creating."
+    if echo "* $(randNumb)" >> $PIN_FILE
+    then echo "INFO: Pin file created."
+    else echo "ERROR: No directory for pin file to be created."
+        exit 1
+    fi
+fi
 
 current_epoch=$(date +%s.%N)
 target_epoch=$(date -d "tomorrow 00:00:00" +%s.%N)
