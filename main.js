@@ -22,21 +22,26 @@ let tickBomb = setTimeout(async function flame() {
         });
 
         if (statusCode === 201) {
-            writeFileSync(process.env.PIN_PATH, `* ${code.toString()}`);
+            const pinFile = readFileSync(process.env.PIN_PATH, 'utf-8');
+            const newText = pinFile.replace(/^\*\s{1,}[0-9]{4}/gm, `* ${code}`);
+            writeFileSync(`${process.env.PIN_PATH}.old`, newText, {encoding: 'utf-8'});
+            writeFileSync(process.env.PIN_PATH, newText, {encoding: 'utf-8'});
 
-            bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
+
+
+            // bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
+            //     if (err) {
+            //         console.error(err);
+            //         return;
+            //     }
                 
-                iface.restartUnit('bt-agent.service', 'replace', (err, res) => {
-                    if (err) {
-                        return console.error(err);
-                    }
-                    console.log(res);
-                })
-            })
+            //     iface.restartUnit('bt-agent.service', 'replace', (err, res) => {
+            //         if (err) {
+            //             return console.error(err);
+            //         }
+            //         console.log(res);
+            //     })
+            // })
 
             return tickBomb = setTimeout(flame, 86400000)
         } else {
