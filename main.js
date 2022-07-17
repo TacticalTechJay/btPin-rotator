@@ -6,56 +6,39 @@ const {writeFileSync, readFileSync} = require('fs');
 const { hostname } = require('os');
 const dbus = require('dbus');
 
-const bus = getBus('system');
+const bus = dbus.getBus('system');
 
-let tickSleep = new Date().setHours(23, 59, 59, 0) - Date.now()
+const tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
 
-let tickBomb = setTimeout(async function flame() {
+async function main() {
+
     const code = randNumbs(process.env.CODE_LENGTH);
-    const data = [];
     try {
-        const {body,statusCode} = await request(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-            method: "POST",
-            headers: {
-                "authorization": `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
-                "content-type": "application/x-www-form-urlencoded"
-            },
-            body: `To=${process.env.TWILIO_TO_PHONE}&Body=Your new piberry speaker bluetooth code: ${code}&From=${process.env.TWILIO_FROM_PHONE}`
-        });
+        const pinFile = readFileSync(pinpath, 'utf8');
 
-        if (statusCode === 201) {
-            const pinFile = readFileSync(process.env.PIN_PATH, 'utf-8');
-            const newText = pinFile.replace(/^\*\s{1,}[0-9]{4}/gm, `* ${code}`);
-            writeFileSync(`${process.env.PIN_PATH}.old`, newText, {encoding: 'utf-8'});
-            writeFileSync(process.env.PIN_PATH, newText, {encoding: 'utf-8'});
-
-
-
-            // bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
-            //     if (err) {
-            //         console.error(err);
-            //         return;
-            //     }
-                
-            //     iface.restartUnit('bt-agent.service', 'replace', (err, res) => {
-            //         if (err) {
-            //             return console.error(err);
-            //         }
-            //         console.log(res);
-            //     })
-            // })
-
-            return tickBomb = setTimeout(flame, 86400000)
-        } else {
-            body.setEncoding('utf8')
-            body.on('data', (ch) => data.push(ch));
-            body.once('end', () => {
-                const res = JSON.parse(data.join())
-                throw new Error(`Code: ${res.code}\nMessage: ${res.message}\nMore Info: ${res.more_info}\nStatus: ${res.status}`)
-            }).catch((e) => {throw e});
+        if (pinFile.length === 0) {
+            console.warn("Warning: Pin file is empty. Creating new pin...")
+            await sendSMS('new', code);
+            return setTimeout(main, tillMidnight);
+        } else if (!/^\*\s{1,}[0-9]{4}/gm.test(pinFile)) {
+            console.warn('Warning: Current pin was not found. Creating new pin...')
+            await sendSMS('notfound', code, pinFile);
+            return setTimeout(main, tillMidnight);
         }
-    } catch (e) {throw e};
-}, tickSleep)
+
+        await sendSMS('replace', code, pinFile);
+        return setTimeout(main, tillMidnight)
+    } catch(e) {
+        if (e.code === 'ENOENT') {
+            console.warn('Warning: Pin file not found, creating one');
+            try {
+                await sendSMS('new', code);
+                return setTimeout(main, tillMidnight);                
+            } catch (e) {throw e}
+        }
+        throw e;
+    }
+}
 
 function randNumbs(n) {
     let res = ""
@@ -67,3 +50,63 @@ function randNumbs(n) {
     return res;
 }
 
+async function sendSMS(type, code, pinFile) {
+    let msg;
+    let data = [];
+    switch(type) {
+        case 'new':
+            msg = `There is now a bluetooth pin for this bluetooth device: ${hostname()}\nYour bluetooth pin is: ${code}`;
+            writeFileSync(pinpath, `*    ${code}`);
+            break;
+        case 'replace':
+            msg = `Your bluetooth pin has been changed to: ${code}\nIt is for this device: ${hostname()}`;
+            const newText = pinFile.replace(/^\*\s{1,}[0-9]{4}/gm, `*    ${code}`);
+            writeFileSync(`${pinpath}.old`, newText, {encoding: 'utf-8'});
+            writeFileSync(pinpath, newText, {encoding: 'utf-8'});
+            break;
+        case 'notfound':
+            msg = `There is now a bluetooth pin for this bluetooth device: ${hostname()}\nYour bluetooth pin is: ${code}`;
+            writeFileSync(pinpath, `\n*    ${code}`, {flag: 'as'});
+            break;
+    }
+    try {
+        const {body,statusCode} = await request(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: "POST",
+            headers: {
+                "authorization": `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
+                "content-type": "application/x-www-form-urlencoded"
+            },
+            body: `To=${process.env.TWILIO_TO_PHONE}&Body=${msg}&From=${process.env.TWILIO_FROM_PHONE}`
+        });
+
+        if (statusCode !== 201) {
+            body.setEncoding('utf8')
+            body.on('data', (ch) => data.push(ch));
+            body.once('end', () => {
+                const res = JSON.parse(data.join())
+                throw new Error(`Code: ${res.code}\nMessage: ${res.message}\nMore Info: ${res.more_info}\nStatus: ${res.status}`)
+            }).catch((e) => {console.error(e); return;});
+        }
+
+        bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            
+            iface.RestartUnit('bt-agent.service', 'replace', (err, res) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                console.log(res);
+                return;
+            })
+        })
+    } catch(e) {
+        console.error(`Error sending SMS, reverting pin. Error message below:\n${e}`);
+        writeFileSync(pinpath, pinFile, {encoding: 'utf-8'});
+    }
+}
+
+setTimeout(main, 1000);
