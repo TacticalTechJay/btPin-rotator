@@ -1,5 +1,6 @@
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+const pinpath = process.env.PIN_PATH;
 const {request} = require('undici');
 const {writeFileSync, readFileSync} = require('fs');
 const {getBus} = require('dbus');
