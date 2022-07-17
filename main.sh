@@ -3,7 +3,7 @@
 main() {
     pin=$(randNumb)
 
-    IS_ERROR=$(curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json --data-urlencode "Body=Your new piberry speaker code: $pin" --data-urlencode "From=$TWILIO_FROM_PHONE" --data-urlencode "To=$TWILIO_TO_PHONE" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 2>&1| jq .code)
+    local IS_ERROR=$(curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json --data-urlencode "Body=For device: $HOST\nYour daily bluetooth device pin: $pin" --data-urlencode "From=$TWILIO_FROM_PHONE" --data-urlencode "To=$TWILIO_TO_PHONE" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 2>&1| jq .code)
     if [ "$IS_ERROR" != "null" ]; then
         if [ -z "$IS_ERROR" ]; then
             echo "ERROR: Something went wrong with SMS. Exiting."
