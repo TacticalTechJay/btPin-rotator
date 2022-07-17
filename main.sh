@@ -13,7 +13,7 @@ main() {
         exit 1
     fi
 
-    mv $PIN_FILE $PIN_FILE.old
+    mv $PIN_PATH $PIN_PATH.old
     sed -E "s/^\*\s{1,}[0-9]{4}/*   $pin/gm" $PIN_FILE.old > $PIN_FILE
 
     systemctl is-active --quiet bt-agent.service && systemctl restart bt-agent.service
@@ -30,9 +30,9 @@ randNumb() {
     echo "$((1000 + RANDOM % 9000))"
 }
 
-if [ ! -e $PIN_FILE ]; then
+if [ ! -e $PIN_PATH ]; then
     echo "INFO: No pin file exists, creating."
-    if echo "* $(randNumb)" >> $PIN_FILE
+    if echo "* $(randNumb)" >> $PIN_PATH
     then echo "INFO: Pin file created."
     else echo "ERROR: No directory for pin file to be created."
         exit 1
