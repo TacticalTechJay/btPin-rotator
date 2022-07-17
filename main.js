@@ -3,7 +3,8 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const pinpath = process.env.PIN_PATH;
 const {request} = require('undici');
 const {writeFileSync, readFileSync} = require('fs');
-const {getBus} = require('dbus');
+const { hostname } = require('os');
+const dbus = require('dbus');
 
 const bus = getBus('system');
 
