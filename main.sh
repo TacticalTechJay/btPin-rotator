@@ -21,7 +21,7 @@ main() {
     current_epoch=$(date +%s.%N)
     target_epoch=$(date -d "tomorrow 00:00:00" +%s.%N)
 
-    sleep_seconds=$(echo "$target_epoch - $current_epoch" | awk '{print $1 - $2}')
+    local sleep_seconds=$(echo "$target_epoch $current_epoch" | awk '{print $1 - $2}')
     sleep $sleep_seconds
     main
 }
