@@ -1,0 +1,13 @@
+[Unit]
+Description=Rotates the damn bluetooth pairing pin.
+After=bt-agent.service
+Requires=network.target
+
+[Service]
+EnvironmentFile=/code/.env
+Type=simple
+ExecStart=/code/main.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
