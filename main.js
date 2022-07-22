@@ -8,9 +8,10 @@ const dbus = require('dbus');
 
 const bus = dbus.getBus('system');
 
-const tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
+let tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
 
 async function main() {
+    tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
 
     const code = randNumbs(process.env.CODE_LENGTH);
     try {
@@ -115,4 +116,4 @@ async function sendSMS(type, code, pinFile) {
     }
 }
 
-setTimeout(main, 1000);
+setTimeout(main, tillMidnight);
