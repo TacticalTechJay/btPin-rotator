@@ -111,7 +111,7 @@ async function sendSMS(type, code, pinFile) {
             })
         })
     } catch(e) {
-        console.error(`Error sending SMS, reverting pin. Error message below:\n${e}`);
+        console.error(`Error: Something went wrong, reverting pin. Error message below:\n${e}`);
         writeFileSync(pinpath, pinFile, {encoding: 'utf-8'});
     }
 }
