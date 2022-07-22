@@ -16,13 +16,13 @@ main() {
     mv $PIN_PATH $PIN_PATH.old
     sed -E "s/^\*\s{1,}[0-9]{4}/*   $pin/gm" $PIN_FILE.old > $PIN_FILE
 
-    systemctl is-active --quiet bt-agent.service
+    systemctl is-active --quiet $SERVICE.service
 
     if [ $? -eq 3]; then
-        echo "WARNING: bt-agent service is not running. Starting it."
-        systemctl start bt-agent.service
+        echo -e "\e[1;33mWARNING: bt-agent service is not running. Starting it.\e[0m"
+        systemctl start $SERVICE.service
     elif [ $? -eq 130 ]; then
-        systemctl restart bt-agent.service
+        systemctl restart $SERVICE.service
     fi
 
     current_epoch=$(date +%s.%N)
