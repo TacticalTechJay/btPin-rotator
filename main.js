@@ -89,18 +89,24 @@ async function sendSMS(type, code, pinFile) {
         }
 
         bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
+            if (err) throw err;
             
-            iface.RestartUnit('bt-agent.service', 'replace', (err, res) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-                console.log(res);
-                return;
+            iface.GetUnit(`${process.env.SERVICE}.service`, (err, res) => {
+                if (err) throw err;
+
+                if (res.ActiveState === 'inactive') {
+                    console.info('Info: Service is not active, restarting.')
+                    res.methods.Start(`${process.env.SERVICE}.service`, 'replace', (err, res) => {
+                        if (err) throw err;
+                        console.log(res);
+                        return;
+                    })
+                } else if (res.ActiveState == 'active') {
+                    res.methods.Restart(`${process.env.SERVICE}.service`, 'replace', (err, res) => {
+                        if (err) throw err;
+                        return;
+                    })
+                } else throw new Error(`Service is in neither an active or inactive state: ${res.ActiveState}`)
             })
         })
     } catch(e) {
