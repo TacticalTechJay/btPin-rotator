@@ -6,7 +6,7 @@ main() {
     local IS_ERROR=$(curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json --data-urlencode "Body=For device: $HOST\nYour daily bluetooth device pin: $pin" --data-urlencode "From=$TWILIO_FROM_PHONE" --data-urlencode "To=$TWILIO_TO_PHONE" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 2>&1| jq .code)
     if [ "$IS_ERROR" != "null" ]; then
         if [ -z "$IS_ERROR" ]; then
-            echo "ERROR: Something went wrong with SMS. Exiting."
+            echo -e "\e[31mERROR: Something went wrong with SMS. Exiting.\e[0m"
             exit 1
         fi
         echo "ERROR: $IS_ERROR"
@@ -47,10 +47,10 @@ service_exists() {
 }
 
 if [ ! -e $PIN_PATH ]; then
-    echo "INFO: No pin file exists, creating."
+    echo -e "\e[1;37mINFO: No pin file exists, creating.\e[0m"
     if echo "* $(randNumb)" >> $PIN_PATH
-    then echo "INFO: Pin file created."
-    else echo "ERROR: No directory for pin file to be created."
+    then echo -e "\e[1;37mINFO: Pin file created.\e[0m"
+    else echo -e "\e[31mERROR: No directory for pin file to be created.\e[0m"
         exit 1
     fi
 fi
