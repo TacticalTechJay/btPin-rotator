@@ -1,6 +1,10 @@
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const pinpath = process.env.PIN_PATH;
+const ops = {
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN,
+    pinpath: process.env.PIN_PATH,
+    service: process.env.SERVICE,
+    codeLength: process.env.CODE_LENGTH,
+}
 const {request} = require('undici');
 const {writeFileSync, readFileSync} = require('fs');
 const { hostname } = require('os');
@@ -13,9 +17,9 @@ let tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
 async function main() {
     tillMidnight = new Date().setHours(23, 59, 59, 999) - Date.now();
 
-    const code = randNumbs(process.env.CODE_LENGTH);
+    const code = randNumbs(ops.codeLength);
     try {
-        const pinFile = readFileSync(pinpath, 'utf8');
+        const pinFile = readFileSync(ops.pinpath, 'utf8');
 
         if (pinFile.length === 0) {
             console.warn("Warning: Pin file is empty. Creating new pin...")
@@ -57,24 +61,24 @@ async function sendSMS(type, code, pinFile) {
     switch(type) {
         case 'new':
             msg = `There is now a bluetooth pin for this bluetooth device: ${hostname()}\nYour bluetooth pin is: ${code}`;
-            writeFileSync(pinpath, `*    ${code}`);
+            writeFileSync(ops.pinpath, `*    ${code}`);
             break;
         case 'replace':
             msg = `Your bluetooth pin has been changed to: ${code}\nIt is for this device: ${hostname()}`;
             const newText = pinFile.replace(/^\*\s{1,}[0-9]{4}/gm, `*    ${code}`);
-            writeFileSync(`${pinpath}.old`, newText, {encoding: 'utf-8'});
-            writeFileSync(pinpath, newText, {encoding: 'utf-8'});
+            writeFileSync(`${ops.pinpath}.old`, newText, {encoding: 'utf-8'});
+            writeFileSync(ops.pinpath, newText, {encoding: 'utf-8'});
             break;
         case 'notfound':
             msg = `There is now a bluetooth pin for this bluetooth device: ${hostname()}\nYour bluetooth pin is: ${code}`;
-            writeFileSync(pinpath, `\n*    ${code}`, {flag: 'as'});
+            writeFileSync(ops.pinpath, `\n*    ${code}`, {flag: 'as'});
             break;
     }
     try {
-        const {body,statusCode} = await request(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+        const {body,statusCode} = await request(`https://api.twilio.com/2010-04-01/Accounts/${ops.accountSid}/Messages.json`, {
             method: "POST",
             headers: {
-                "authorization": `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
+                "authorization": `Basic ${Buffer.from(`${ops.accountSid}:${ops.authToken}`).toString('base64')}`,
                 "content-type": "application/x-www-form-urlencoded"
             },
             body: `To=${process.env.TWILIO_TO_PHONE}&Body=${msg}&From=${process.env.TWILIO_FROM_PHONE}`
@@ -86,24 +90,24 @@ async function sendSMS(type, code, pinFile) {
             body.once('end', () => {
                 const res = JSON.parse(data.join())
                 throw new Error(`Code: ${res.code}\nMessage: ${res.message}\nMore Info: ${res.more_info}\nStatus: ${res.status}`)
-            }).catch((e) => {console.error(e); return;});
+            }).catch((e) => {throw e});
         }
 
         bus.getInterface('org.freedesktop.systemd1', '/org/freedesktop/systemd1', 'org.freedesktop.systemd1.Manager', (err, iface) => {
             if (err) throw err;
             
-            iface.GetUnit(`${process.env.SERVICE}.service`, (err, res) => {
+            iface.GetUnit(`${ops.service}.service`, (err, res) => {
                 if (err) throw err;
 
                 if (res.ActiveState === 'inactive') {
                     console.info('Info: Service is not active, restarting.')
-                    res.methods.Start(`${process.env.SERVICE}.service`, 'replace', (err, res) => {
+                    res.methods.Start(`${ops.service}.service`, 'replace', (err, res) => {
                         if (err) throw err;
                         console.log(res);
                         return;
                     })
                 } else if (res.ActiveState == 'active') {
-                    res.methods.Restart(`${process.env.SERVICE}.service`, 'replace', (err, res) => {
+                    res.methods.Restart(`${ops.service}.service`, 'replace', (err, res) => {
                         if (err) throw err;
                         return;
                     })
@@ -112,8 +116,12 @@ async function sendSMS(type, code, pinFile) {
         })
     } catch(e) {
         console.error(`Error: Something went wrong, reverting pin. Error message below:\n${e}`);
-        writeFileSync(pinpath, pinFile, {encoding: 'utf-8'});
+        writeFileSync(ops.pinpath, pinFile, {encoding: 'utf-8'});
     }
 }
+
+Object.keys(ops).forEach((key) => {
+    if (!ops[key]) throw new Error(`${key} is not defined`)
+})
 
 setTimeout(main, tillMidnight);
