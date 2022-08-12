@@ -7,7 +7,7 @@ This is supposed to be used on linux with bt-agent from [bluez-tools](https://gi
 You can follow .env.example on how to configure btPin-rotator. The config is as follows:
 
 |Key|Value|Description|
-|-------|-------|------|
+|:-------|:-------:|------:|
 |`TWILIO_ACCOUNT_SID`|String|This is the account SID for the use of Twilio.|
 |`TWILIO_AUTH_TOKEN`|String|This is the auth token for the use of Twilio.|
 |`TWILIO_FROM_PHONE`|String|The phone number to use on said Twilio account.|
