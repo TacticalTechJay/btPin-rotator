@@ -14,7 +14,7 @@ main() {
     fi
 
     mv $PIN_PATH $PIN_PATH.old
-    sed -E "s/^\*\s{1,}[0-9]{4}/*   $pin/gm" $PIN_FILE.old > $PIN_FILE
+    sed -E "s/^\*\s{1,}[0-9]{4}/*   $pin/gm" $PIN_PATH.old > $PIN_PATH
 
     systemctl is-active --quiet $SERVICE.service
 
