@@ -125,3 +125,4 @@ Object.keys(ops).forEach((key) => {
 })
 
 setTimeout(main, tillMidnight);
+console.log(`Info: Ready!`)
